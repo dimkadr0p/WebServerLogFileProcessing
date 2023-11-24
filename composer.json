@@ -1,0 +1,14 @@
+{
+    "require": {
+        "slim/slim": "4.*",
+        "slim/psr7": "^1.6",
+        "tuupola/cors-middleware": "^1.4",
+        "monolog/monolog": "^3.4",
+        "php-di/php-di": "^7.0",
+        "illuminate/database": "^10.26",
+        "firebase/php-jwt": "^6.9",
+        "phpmailer/phpmailer": "^6.8",
+        "slim/twig-view": "^3.3",
+      "ext-pdo": "*"
+    }
+}

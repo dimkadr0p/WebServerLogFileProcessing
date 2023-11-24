@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Логи</title>
+
+    <style>
+
+        #loader-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        #loader {
+            border: 4px solid #f3f3f3; /* Цвет кольца */
+            border-top: 4px solid #3498db; /* Цвет верхнего кольца (по умолчанию синий) */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+
+</head>
+<body>
+
+    <div id="loader-container">
+        <div id="loader"></div>
+    </div>
+
+
+    <div class="logs">
+
+        <table border="5">
+            <thead>
+            <tr>
+                <th class="ip_address">IP-адрес
+                    <select class="sort-select">
+                        <option value=""></option>
+                        <option value="asc">сортировка по возрастанию</option>
+                        <option value="desc">сортировка по убыванию</option>
+                    </select>
+                </th>
+                <th class="ip_address_count">Количество обращений
+                    <select class="sort-select">
+                        <option value=""></option>
+                        <option value="asc">сортировка по возрастанию</option>
+                        <option value="desc">сортировка по убыванию</option>
+                    </select>
+                </th>
+                <th class="status_code">Статус код
+                    <select class="sort-select">
+                        <option value=""></option>
+                        <option value="asc">сортировка по возрастанию</option>
+                        <option value="desc">сортировка по убыванию</option>
+                    </select>
+                </th>
+                <th class="size_response">Размер ответа
+                    <select class="sort-select">
+                        <option value=""></option>
+                        <option value="asc">сортировка по возрастанию</option>
+                        <option value="desc">сортировка по убыванию</option>
+                    </select>
+                </th>
+                <th>Версия HTTP</th>
+                <th class="user_agent">User-Agent</th>
+                <th class="timestamp">Временная метка</th>
+                <th class="url_request">URL запроса</th>
+                <th class="referrer">Referrer</th>
+            </tr>
+            </thead>
+            <tbody id="logTableBody">
+            </tbody>
+        </table>
+
+        <div class="foo">
+
+        </div>
+    </div>
+
+
+    <script>
+
+        let logsContainer = document.querySelector('.logs');
+
+        let logs = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            let promiseLogs = getLogs();
+
+            promiseLogs.then(value => {
+                logs = value;
+                logsContainer.style.display = 'block';
+
+                if(checkLogsEmpty(logs)) {
+                    hideLoader();
+                    return;
+                }
+
+                let currentSizeLog = logs.length / 10;
+
+                console.log("тот на который делим ", currentSizeLog);
+
+                let checkParitySizeLog = checkConservativeDataBlockCount(currentSizeLog);
+
+                currentSizeLog = checkParitySizeLog ? currentSizeLog: parseInt(currentSizeLog);
+
+                const numberForSum = currentSizeLog;
+
+                let indexBegin = 0;
+
+                console.log("numberForSum ", numberForSum)
+                let intervalId = setInterval(() => {
+
+                    if(logs.length === (checkParitySizeLog ? currentSizeLog: currentSizeLog + 5)) {
+                        displayLog(currentSizeLog, currentSizeLog + 5);
+                        hideLoader();
+                        clearInterval(intervalId);
+                    } else {
+                        displayLog(indexBegin, currentSizeLog);
+                        currentSizeLog += numberForSum;
+                        indexBegin += numberForSum;
+                    }
+                });
+            });
+        }, false);
+
+        function checkConservativeDataBlockCount(currentSizeLog) {
+            return Number.isInteger(currentSizeLog);
+        }
+
+        const sortSelects = document.querySelectorAll(".sort-select");
+
+        sortSelects.forEach(function (select) {
+            select.addEventListener("change", function (event) {
+                if(checkLogsEmpty(logs)) {
+                    hideLoader();
+                    return;
+                }
+                const column = select.parentElement.getAttribute('class');
+                console.log("колонка ", select.parentElement);
+                const direction = select.value;
+
+                if(sortTable(column, direction)) {
+
+                    displayLoader();
+
+                    clearTable();
+
+                    let currentSizeLog = logs.length / 10;
+
+
+                    let checkParitySizeLog = checkConservativeDataBlockCount(currentSizeLog);
+
+                    currentSizeLog = checkParitySizeLog ? currentSizeLog: parseInt(currentSizeLog);
+
+                    const numberForSum = currentSizeLog;
+
+                    let indexBegin = 0;
+
+                    let intervalId = setInterval(() => {
+                        if(logs.length === (checkParitySizeLog ? currentSizeLog: currentSizeLog + 5)) {
+                            displayLog(currentSizeLog, currentSizeLog + 5);
+                            hideLoader();
+                            clearInterval(intervalId);
+                        } else {
+                            displayLog(indexBegin, currentSizeLog);
+                            currentSizeLog+=numberForSum;
+                            indexBegin+=numberForSum;
+                        }
+                    });
+                }
+            });
+        });
+
+
+        function sortTable(column, direction) {
+            switch (column) {
+                case "ip_address":
+                    return sortElementsByIpAddress(direction);
+                case "size_response":
+                    return sortElementsBySizeResponse(direction);
+                case "status_code":
+                    return sortStatusCode(direction);
+                case "ip_address_count":
+                    return getNumberRequests(direction);
+                default:
+                    return false;
+            }
+        }
+
+        function getNumberRequests(direction) {
+            switch (direction) {
+                case "asc":
+                    logs.sort((a, b) => a.ipAddressCount - b.ipAddressCount);
+                    return true;
+                case "desc":
+                    logs.sort((a, b) => b.ipAddressCount - a.ipAddressCount);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        function sortStatusCode(direction) {
+            switch (direction) {
+                case "asc":
+                    logs.sort((a, b) => a.statusCode - b.statusCode);
+                    return true;
+                case "desc":
+                    logs.sort((a, b) => b.statusCode - a.statusCode);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+
+        function sortElementsByIpAddress(direction) {
+            switch (direction) {
+                case "asc":
+                    logs.sort((a, b) => {
+                        return a.ipAddress.localeCompare(b.ipAddress);
+                    });
+                    return true;
+                case "desc":
+                    logs.sort((a, b) => {
+                        return b.ipAddress.localeCompare(a.ipAddress);
+                    });
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+
+        function sortElementsBySizeResponse(direction) {
+            switch (direction) {
+                case "asc":
+                    logs.sort((a, b) => a.responseSize - b.responseSize);
+                    return true;
+                case "desc":
+                    logs.sort((a, b) => b.responseSize - a.responseSize);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+
+        async function getLogs() {
+            let resp = await fetch('http://localhost/logsInfo', {
+                method: 'GET',
+            });
+
+            let respJson = await resp.json();
+
+            return await respJson;
+        }
+
+        function hideLoader() {
+            let loader = document.getElementById('loader');
+            loader.style.display = 'none';
+        }
+
+        function displayLoader() {
+            let loader = document.getElementById('loader');
+            loader.style.display = 'block';
+        }
+
+
+        function clearTable() {
+            let tableBody = document.getElementById('logTableBody');
+            while (tableBody.firstChild) {
+                tableBody.removeChild(tableBody.firstChild);
+            }
+        }
+
+
+        function displayLog(indexBegin, sizeBlockLog) {
+            let tableBody = document.getElementById('logTableBody');
+            for (let i = indexBegin; i < sizeBlockLog; i++) {
+                let data = logs[i];
+                if (typeof data === "undefined") {
+                    console.log("попали в undefined");
+                    continue;
+                }
+                let row = createTableRow(data);
+                tableBody.appendChild(row);
+            }
+        }
+
+        function createTableCell(data) {
+            let cell = document.createElement('td');
+            cell.textContent = data;
+            return cell;
+        }
+
+        function createTableRow(log) {
+            let row = document.createElement('tr');
+            row.appendChild(createTableCell(log.ipAddress));
+            row.appendChild(createTableCell(log.ipAddressCount));
+            row.appendChild(createTableCell(log.statusCode));
+            row.appendChild(createTableCell(log.responseSize));
+            row.appendChild(createTableCell(log.httpVersion));
+            row.appendChild(createTableCell(log.userAgent));
+            row.appendChild(createTableCell(log.timestamp));
+            row.appendChild(createTableCell(log.requestUrl));
+            row.appendChild(createTableCell(log.referrer));
+            return row;
+        }
+
+        function checkLogsEmpty(logs) {
+            return logs.length === 0;
+        }
+
+    </script>
+
+</body>
+</html>

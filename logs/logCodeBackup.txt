@@ -1,0 +1,46 @@
+<?php
+
+$filename = 'logs/log200k.log';
+$outputFilename = 'parsed_log.txt'; // Имя файла для сохранения данных
+$regex = '/^(\d+\.\d+\.\d+\.\d+) - - \[([^\]]+)\] "(\w+) ([^"]*)" (\d+) (\d+) "([^"]*)" "([^"]*)"/';
+
+$file = fopen($filename, 'r');
+$outputFile = fopen($outputFilename, 'w');
+
+if ($file && $outputFile) {
+    while (!feof($file)) {
+        $line = fgets($file);
+        $matches = array();
+        if (preg_match($regex, $line, $matches)) {
+            // Извлекаем данные и записываем их в файл
+            $ip = $matches[1];
+            $dateStr = $matches[2];
+            $requestMethod = $matches[3];
+            $requestURI = $matches[4];
+            $status = $matches[5];
+            $size = $matches[6];
+            $referrer = $matches[7];
+            $userAgent = $matches[8];
+
+            $date = DateTime::createFromFormat('d/M/Y:H:i:s O', $dateStr);
+            $timestamp = $date->format('Y-m-d H:i:s');
+
+            // Записываем данные в файл
+            fwrite($outputFile, "IP: $ip\n");
+            fwrite($outputFile, "Дата: $timestamp\n");
+            fwrite($outputFile, "Запрос: $requestMethod $requestURI\n");
+            fwrite($outputFile, "Статус: $status\n");
+            fwrite($outputFile, "Размер: $size\n");
+            fwrite($outputFile, "Referrer: $referrer\n");
+            fwrite($outputFile, "User Agent: $userAgent\n");
+        }
+    }
+
+    fclose($file);
+    fclose($outputFile);
+} else {
+    echo "Не удалось открыть файл.";
+}
+
+?>
+

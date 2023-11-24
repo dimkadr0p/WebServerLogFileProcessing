@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Лаб 5</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        a {
+            font-size: 30px;
+        }
+
+        .wrapper {
+            margin: 0 auto;
+            max-width: 500px;
+            width: 100%;
+            margin-top: 50px;
+        }
+
+        .progress__line {
+            background-color: #2fc54d;
+            bottom: 0;
+            color: #fff;
+            left: 0;
+            top: 0;
+            position: absolute;
+            text-align: center;
+        }
+
+        .progress__line-bg {
+            background-color: #ccc;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+
+
+
+            .log-process-btn {
+                width: 200px;
+                height: 50px;
+                border-radius: 10px;
+            }
+        }
+
+    </style>
+
+</head>
+<body>
+    <header class="header">
+        <div class="viewing_data">
+            <a href="log.html" target="_blank">Перейти на страницу с загруженными данными</a>
+        </div>
+    </header>
+
+    <main class="main">
+
+        <div class="wrapper">
+            <div class="progress">
+                <div class="progress__line-bg">
+                    <div id="progress__line" class="progress__line"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="btn-container">
+            <div id="start-btn" class="log-process-btn">
+                <button class="btn-load-log">Запустить процесс загрузки лог файла</button>
+            </div>
+
+<!--            <div id="pause-btn" class="log-process-btn">
+                <button class="btn-load-log">Сделать паузу процесса загрузки лог файла</button>
+            </div>-->
+
+            <div id="stop-btn" class="log-process-btn">
+                <button class="btn-load-log">Остановить процесс загрузки лог файла</button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+
+        let startBtn = document.getElementById('start-btn');
+        let pauseBtn = document.getElementById('pause-btn');
+        let stopBtn = document.getElementById('stop-btn');
+
+        let progressBar = document.getElementById('progress__line');
+
+        let flagLoad = true;
+
+        let widht;
+
+        function sendRequestByLoadLogFile() {
+            flagLoad = true;
+            fetch('http://localhost/upload_log', {
+                method: 'GET',
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("data with upload-log: ", data);
+                    if (flagLoad === true) {
+
+                        widht = data['lengthLogsBefore'] / data['sizeBlockData'];
+
+                        let percentLoaded = (100 - widht) + 1;
+
+                        progress(percentLoaded);
+
+                        if(data['lengthLogsBefore'] === 0) {
+                            progressBar.style.width = '100%';
+                            progressBar.innerHTML = '100%';
+                            console.log("Процесс загрузки завершен");
+                            return;
+                        }
+
+                        sendRequestByLoadLogFile();
+
+                    } else {
+                        console.log('Остановлено');
+                    }
+                })
+                .catch(error => console.error('Ошибка загрузки:', error))
+                .finally(() => {
+
+                });
+        }
+
+
+        startBtn.addEventListener('click', () => {
+            sendRequestByLoadLogFile();
+        });
+
+
+        stopBtn.addEventListener('click', () => {
+            flagLoad = false;
+        });
+
+
+         function progress(percentLoaded) {
+             progressStatus();
+            function progressStatus() {
+                progressBar.style.width = percentLoaded + '%';
+                progressBar.innerHTML = percentLoaded * 1 + '%';
+            }
+        }
+    </script>
+
+</body>
+</html>
